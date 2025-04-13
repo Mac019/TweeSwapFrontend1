@@ -54,7 +54,8 @@ export default function PlanSelectionWithForm() {
     rewardLike: '',
     rewardComment: '',
     rewardRepost: '',
-    campaignFees: '', // <-- New editable only if no plan
+    campaignFees: '',
+    rewardPool: '',
   });
 
   const handlePlanSelect = (plan) => {
@@ -69,7 +70,6 @@ export default function PlanSelectionWithForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const rewardPoolToUse = selectedPlan ? 0 : 100;
     const campaignFeesToUse = selectedPlan ? 0 : Number(formData.campaignFees);
 
     try {
@@ -79,7 +79,7 @@ export default function PlanSelectionWithForm() {
         rewardLike: Number(formData.rewardLike),
         rewardComment: Number(formData.rewardComment),
         rewardRepost: Number(formData.rewardRepost),
-        rewardPool: rewardPoolToUse,
+        rewardPool: Number(formData.rewardPool),
         campaignFees: campaignFeesToUse,
         selectedPlan: selectedPlan || null,
         createdAt: serverTimestamp(),
@@ -218,16 +218,17 @@ export default function PlanSelectionWithForm() {
             'rewardLike',
             'rewardComment',
             'rewardRepost',
+            'rewardPool',
           ].map((field) => (
             <div key={field} style={fieldStyle}>
               <label style={labelStyle}>
-                {field.replace('reward', 'Reward for ')}
+                {field.replace('reward', 'Reward for ').replace('Pool', 'Pool (TRX)')}
               </label>
               <input
                 type={
                   field === 'endTime'
                     ? 'datetime-local'
-                    : field.includes('reward') || field === 'userLimit'
+                    : field.includes('reward') || field === 'userLimit' || field === 'rewardPool'
                     ? 'number'
                     : 'text'
                 }
@@ -254,17 +255,6 @@ export default function PlanSelectionWithForm() {
                 ...inputStyle,
                 backgroundColor: selectedPlan ? '#f0f0f0' : '#fff',
               }}
-            />
-          </div>
-
-          {/* Reward Pool (auto-set display) */}
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Reward Pool (Auto Set)</label>
-            <input
-              type="number"
-              value={selectedPlan ? 0 : 100}
-              disabled
-              style={{ ...inputStyle, backgroundColor: '#f0f0f0' }}
             />
           </div>
 
