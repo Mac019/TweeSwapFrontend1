@@ -62,7 +62,7 @@ export default function CampaignList() {
                     </div>
                   )}
                 </td>
-                <td style={tdStyle}>{c.rewardPool} TRX</td>
+                <td style={tdStyle}>{c.totalReward} TRX</td>
                 <td style={tdStyle}>{c.rewardLike}</td>
                 <td style={tdStyle}>{c.rewardComment}</td>
                 <td style={tdStyle}>{c.rewardRepost}</td>
