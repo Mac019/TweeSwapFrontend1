@@ -17,9 +17,9 @@ export default function CampaignForm() {
     campaignFees: '',
     totalReward: '',
     twitterId: '',
+    category: '', // new field for dropdown
   });
 
-  // Extract Twitter ID whenever tweetUrl changes
   useEffect(() => {
     const extractTwitterId = () => {
       const match = formData.tweetUrl.match(/(?:x|twitter)\.com\/([^\/]+)\/status/i);
@@ -147,6 +147,30 @@ export default function CampaignForm() {
             />
           </div>
         ))}
+
+        {/* Category dropdown */}
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Category</label>
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          >
+            <option value="">Select Category</option>
+            <option value="Technology & Crypto">Technology & Crypto</option>
+            <option value="E-commerce & Retail">E-commerce & Retail</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Education & Learning">Education & Learning</option>
+            <option value="Finance & Investment">Finance & Investment</option>
+            <option value="Health & Wellness">Health & Wellness</option>
+            <option value="Social Awareness">Social Awareness</option>
+            <option value="Influencer & Personal Branding">Influencer & Personal Branding</option>
+            <option value="Events & Communities">Events & Communities</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
 
         <div style={fieldStyle}>
           <label style={labelStyle}>Twitter ID</label>
