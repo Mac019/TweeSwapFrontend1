@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '@/firebase/campaign.js';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -15,11 +15,29 @@ export default function CampaignForm() {
     rewardComment: '',
     rewardRepost: '',
     campaignFees: '',
-    rewardPool: '',
+    totalReward: '',
+    twitterId: '',
   });
+
+  // Extract Twitter ID whenever tweetUrl changes
+  useEffect(() => {
+    const extractTwitterId = () => {
+      const match = formData.tweetUrl.match(/(?:x|twitter)\.com\/([^\/]+)\/status/i);
+      if (match) {
+        setFormData((prev) => ({ ...prev, twitterId: match[1] }));
+      }
+    };
+
+    extractTwitterId();
+  }, [formData.tweetUrl]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setFormData({ ...formData, logo: file });
   };
 
   const handleSubmit = async (e) => {
@@ -33,7 +51,7 @@ export default function CampaignForm() {
         rewardComment: Number(formData.rewardComment),
         rewardRepost: Number(formData.rewardRepost),
         campaignFees: Number(formData.campaignFees),
-        rewardPool: Number(formData.rewardPool),
+        totalReward: Number(formData.totalReward),
         selectedPlan: null,
         createdAt: serverTimestamp(),
       };
@@ -103,17 +121,21 @@ export default function CampaignForm() {
           'rewardLike',
           'rewardComment',
           'rewardRepost',
-          'rewardPool',
+          'totalReward',
         ].map((field) => (
           <div key={field} style={fieldStyle}>
             <label style={labelStyle}>
-              {field.replace('reward', 'Reward for ').replace('Pool', 'Pool (TRX)')}
+              {field === 'totalReward'
+                ? 'Total Reward (TRX)'
+                : field.replace('reward', 'Reward for ')
+                    .replace(/([A-Z])/g, ' $1')
+                    .replace(/^./, (s) => s.toUpperCase())}
             </label>
             <input
               type={
                 field === 'endTime'
                   ? 'datetime-local'
-                  : field.includes('reward') || field === 'userLimit' || field === 'rewardPool'
+                  : field.includes('reward') || field === 'userLimit' || field === 'totalReward'
                   ? 'number'
                   : 'text'
               }
@@ -127,6 +149,17 @@ export default function CampaignForm() {
         ))}
 
         <div style={fieldStyle}>
+          <label style={labelStyle}>Twitter ID</label>
+          <input
+            type="text"
+            name="twitterId"
+            value={formData.twitterId}
+            readOnly
+            style={{ ...inputStyle, backgroundColor: '#f9f9f9' }}
+          />
+        </div>
+
+        <div style={fieldStyle}>
           <label style={labelStyle}>Campaign Fees (TRX)</label>
           <input
             type="number"
@@ -134,6 +167,16 @@ export default function CampaignForm() {
             value={formData.campaignFees}
             onChange={handleChange}
             required
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Campaign Logo (PNG)</label>
+          <input
+            type="file"
+            accept="image/png"
+            onChange={handleFileChange}
             style={inputStyle}
           />
         </div>

@@ -1,47 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { db } from '@/firebase/campaign.js';
+import React, { useState, useEffect } from 'react';
+import { db, storage } from '@/firebase/campaign.js';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-
-const plans = [
-  {
-    name: 'Basic',
-    price: '50 TRX',
-    description: [
-      'Ideal for individuals just starting out.',
-      'Access to basic features like profile creation and resume storage.',
-      'Email support with a response time of up to 48 hours.',
-      'Limited usage of certain advanced features.'
-    ],
-    backgroundColor: '#E1F5FE',
-  },
-  {
-    name: 'Advance',
-    price: '150 TRX',
-    description: [
-      'For users who need more flexibility and features.',
-      'Access to advanced features including analytics and custom templates.',
-      'Priority email support with a response time of up to 24 hours.',
-      'More storage and integrations with external platforms.',
-      'Additional premium templates and customization options.'
-    ],
-    backgroundColor: '#FFF3E0',
-  },
-  {
-    name: 'Premium',
-    price: '300 TRX',
-    description: [
-      'The most comprehensive plan for power users.',
-      'Full access to all features including advanced analytics, premium templates, and unlimited customizations.',
-      '24/7 priority support with a dedicated account manager.',
-      'Unlimited storage and integrations with all platforms.',
-      'Access to exclusive updates, new features, and beta tests.',
-      'Custom branding and personalized features for your profile.'
-    ],
-    backgroundColor: '#F3E5F5',
-  },
-];
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function PlanSelectionWithForm() {
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -55,8 +17,18 @@ export default function PlanSelectionWithForm() {
     rewardComment: '',
     rewardRepost: '',
     campaignFees: '',
-    rewardPool: '',
+    totalReward: '',
   });
+  const [twitterId, setTwitterId] = useState('');
+  const [logoFile, setLogoFile] = useState(null);
+
+  // Extract Twitter ID from tweet URL
+  useEffect(() => {
+    const match = formData.tweetUrl.match(/(?:x|twitter)\.com\/([^\/]+)\/status/i);
+    if (match) {
+      setTwitterId(match[1]);
+    }
+  }, [formData.tweetUrl]);
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan.name);
@@ -67,21 +39,34 @@ export default function PlanSelectionWithForm() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleFileChange = (e) => {
+    setLogoFile(e.target.files[0]);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const campaignFeesToUse = selectedPlan ? 0 : Number(formData.campaignFees);
+    let logoURL = '';
 
     try {
+      if (logoFile) {
+        const storageRef = ref(storage, `logos/${logoFile.name}_${Date.now()}`);
+        const snapshot = await uploadBytes(storageRef, logoFile);
+        logoURL = await getDownloadURL(snapshot.ref);
+      }
+
       const payload = {
         ...formData,
+        twitterId,
         userLimit: Number(formData.userLimit),
         rewardLike: Number(formData.rewardLike),
         rewardComment: Number(formData.rewardComment),
         rewardRepost: Number(formData.rewardRepost),
-        rewardPool: Number(formData.rewardPool),
+        totalReward: Number(formData.totalReward),
         campaignFees: campaignFeesToUse,
         selectedPlan: selectedPlan || null,
+        logo: logoURL,
         createdAt: serverTimestamp(),
       };
 
@@ -93,42 +78,12 @@ export default function PlanSelectionWithForm() {
     }
   };
 
-  const cardWrapper = {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '24px',
-    justifyContent: 'center',
-    padding: '24px',
-  };
-
-  const cardStyle = (selected, backgroundColor) => ({
-    width: 'calc(33.33% - 16px)',
-    height: '450px',
-    border: '1px solid #ddd',
+  const inputStyle = {
+    width: '100%',
+    padding: '10px',
+    border: '1px solid #ccc',
     borderRadius: '8px',
-    padding: '24px',
-    textAlign: 'center',
-    backgroundColor,
-    transform: selected ? 'scale(1.02)' : 'none',
-    boxShadow: selected
-      ? '0 6px 16px rgba(0,0,0,0.15)'
-      : '0 4px 12px rgba(0, 0, 0, 0.1)',
-    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-  });
-
-  const formContainer = {
-    maxWidth: '600px',
-    margin: '40px auto',
-    padding: '24px',
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-  };
-
-  const headingStyle = {
-    fontSize: '24px',
-    fontWeight: 'bold',
-    marginBottom: '16px',
+    fontSize: '16px',
   };
 
   const fieldStyle = {
@@ -142,14 +97,6 @@ export default function PlanSelectionWithForm() {
     textTransform: 'capitalize',
   };
 
-  const inputStyle = {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #ccc',
-    borderRadius: '8px',
-    fontSize: '16px',
-  };
-
   const buttonStyle = {
     backgroundColor: '#2563eb',
     color: '#ffffff',
@@ -161,108 +108,62 @@ export default function PlanSelectionWithForm() {
   };
 
   return (
-    <>
-      <div style={cardWrapper}>
-        {plans.map((plan, index) => (
-          <div
-            key={index}
-            style={cardStyle(selectedPlan === plan.name, plan.backgroundColor)}
-          >
-            <h3 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '12px' }}>{plan.name}</h3>
-            <p style={{ fontSize: '20px', fontWeight: '700', marginBottom: '16px' }}>{plan.price}</p>
-
-            <ul style={{ textAlign: 'left', fontSize: '14px', color: '#555', marginBottom: '24px' }}>
-              {plan.description.map((point, idx) => (
-                <li key={idx} style={{ marginBottom: '8px', listStyleType: 'disc', paddingLeft: '20px' }}>
-                  {point}
-                </li>
-              ))}
-            </ul>
-
-            <button
-              style={{
-                backgroundColor: selectedPlan === plan.name ? '#28a745' : '#007BFF',
-                color: '#fff',
-                padding: '12px 20px',
-                borderRadius: '6px',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'background-color 0.3s ease',
-              }}
-              onMouseEnter={(e) =>
-                e.target.style.backgroundColor =
-                  selectedPlan === plan.name ? '#218838' : '#0056b3'
-              }
-              onMouseLeave={(e) =>
-                e.target.style.backgroundColor =
-                  selectedPlan === plan.name ? '#28a745' : '#007BFF'
-              }
-              onClick={() => handlePlanSelect(plan)}
-            >
-              {selectedPlan === plan.name ? 'Selected' : 'Select'}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Form Section */}
-      <div style={formContainer}>
-        <h2 style={headingStyle}>Create Campaign</h2>
-        <form onSubmit={handleSubmit}>
-          {[
-            'name',
-            'description',
-            'tweetUrl',
-            'endTime',
-            'userLimit',
-            'rewardLike',
-            'rewardComment',
-            'rewardRepost',
-            'rewardPool',
-          ].map((field) => (
-            <div key={field} style={fieldStyle}>
-              <label style={labelStyle}>
-                {field.replace('reward', 'Reward for ').replace('Pool', 'Pool (TRX)')}
-              </label>
-              <input
-                type={
-                  field === 'endTime'
-                    ? 'datetime-local'
-                    : field.includes('reward') || field === 'userLimit' || field === 'rewardPool'
-                    ? 'number'
-                    : 'text'
-                }
-                name={field}
-                value={formData[field]}
-                onChange={handleChange}
-                required
-                style={inputStyle}
-              />
-            </div>
-          ))}
-
-          {/* Campaign Fees Field */}
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Campaign Fees (TRX)</label>
+    <div style={{ maxWidth: '600px', margin: '40px auto', padding: '24px', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+      <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>Create Campaign</h2>
+      <form onSubmit={handleSubmit}>
+        {[
+          'name',
+          'description',
+          'tweetUrl',
+          'endTime',
+          'userLimit',
+          'rewardLike',
+          'rewardComment',
+          'rewardRepost',
+          'totalReward'
+        ].map((field) => (
+          <div key={field} style={fieldStyle}>
+            <label style={labelStyle}>
+              {field === 'totalReward'
+                ? 'Total Reward (TRX)'
+                : field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}
+            </label>
             <input
-              type="number"
-              name="campaignFees"
-              value={selectedPlan ? 0 : formData.campaignFees}
+              type={
+                field === 'endTime'
+                  ? 'datetime-local'
+                  : field.includes('reward') || field === 'userLimit' || field === 'totalReward'
+                  ? 'number'
+                  : 'text'
+              }
+              name={field}
+              value={formData[field]}
               onChange={handleChange}
-              required={!selectedPlan}
-              disabled={!!selectedPlan}
-              style={{
-                ...inputStyle,
-                backgroundColor: selectedPlan ? '#f0f0f0' : '#fff',
-              }}
+              required
+              style={inputStyle}
             />
           </div>
+        ))}
 
-          <button type="submit" style={buttonStyle}>
-            Submit Campaign
-          </button>
-        </form>
-      </div>
-    </>
+        {/* Campaign Fees */}
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Campaign Fees (TRX)</label>
+          <input
+            type="number"
+            name="campaignFees"
+            value={selectedPlan ? 0 : formData.campaignFees}
+            onChange={handleChange}
+            required={!selectedPlan}
+            disabled={!!selectedPlan}
+            style={{
+              ...inputStyle,
+              backgroundColor: selectedPlan ? '#f0f0f0' : '#fff',
+            }}
+          />
+        </div>
+
+        <button type="submit" style={buttonStyle}>Submit Campaign</button>
+      </form>
+    </div>
   );
 }
